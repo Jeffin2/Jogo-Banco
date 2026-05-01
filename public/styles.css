@@ -35,3 +35,26 @@ li {
     padding: 10px;
     border-radius: 10px;
 }
+
+/* TABULEIRO */
+#board {
+    display: grid;
+    grid-template-columns: repeat(5, 60px);
+    gap: 5px;
+    justify-content: center;
+    margin-top: 20px;
+}
+
+.cell {
+    width: 60px;
+    height: 60px;
+    background: rgba(255,255,255,0.2);
+    border-radius: 8px;
+    position: relative;
+}
+
+.player {
+    position: absolute;
+    bottom: 2px;
+    right: 2px;
+}

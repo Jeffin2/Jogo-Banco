@@ -4,11 +4,14 @@ let myId = "";
 let isAdmin = false;
 let myTurn = false;
 
+let playersPositions = {};
+const boardSize = 20;
+
 socket.on("connect", () => {
     myId = socket.id;
-    console.log("🟢 Conectado:", myId);
 });
 
+// UI
 function createRoom() {
     const name = document.getElementById("name").value;
     socket.emit("createRoom", { name });
@@ -29,6 +32,7 @@ function showRoom(roomId) {
     document.getElementById("roomCode").innerText = roomId;
 }
 
+// Atualizar sala
 socket.on("updateRoom", (room) => {
     const list = document.getElementById("players");
     list.innerHTML = "";
@@ -36,6 +40,8 @@ socket.on("updateRoom", (room) => {
     isAdmin = room.admin === myId;
 
     room.players.forEach(p => {
+        playersPositions[p.id] = p.position || 0;
+
         const li = document.createElement("li");
         li.innerText = p.name;
 
@@ -49,10 +55,13 @@ socket.on("updateRoom", (room) => {
         list.appendChild(li);
     });
 
+    renderBoard();
+
     const startBtn = document.getElementById("startBtn");
     startBtn.style.display = (isAdmin && room.players.length >= 2) ? "block" : "none";
 });
 
+// Iniciar
 function startGame() {
     socket.emit("startGame");
 }
@@ -62,6 +71,7 @@ socket.on("gameStarted", ({ currentPlayer }) => {
     updateTurn(currentPlayer);
 });
 
+// Turno
 socket.on("nextTurn", updateTurn);
 
 function updateTurn(player) {
@@ -71,15 +81,44 @@ function updateTurn(player) {
     turn.innerText = "Vez de: " + player.name + (myTurn ? " (VOCÊ)" : "");
 }
 
+// Dado
 function rollDice() {
     if (!myTurn) return alert("Não é sua vez!");
     socket.emit("rollDice");
 }
 
-socket.on("diceRolled", ({ player, value }) => {
+// Movimento
+socket.on("playerMoved", ({ playerId, position, dice }) => {
+    playersPositions[playerId] = position;
+
     document.getElementById("dice").innerText =
-        `${player.name} tirou 🎲 ${value}`;
+        `🎲 Movimento: ${dice}`;
+
+    renderBoard();
 });
+
+// Tabuleiro
+function renderBoard() {
+    const board = document.getElementById("board");
+    board.innerHTML = "";
+
+    for (let i = 0; i < boardSize; i++) {
+        const cell = document.createElement("div");
+        cell.className = "cell";
+        cell.innerText = i;
+
+        for (let id in playersPositions) {
+            if (playersPositions[id] === i) {
+                const p = document.createElement("div");
+                p.className = "player";
+                p.innerText = "🧍";
+                cell.appendChild(p);
+            }
+        }
+
+        board.appendChild(cell);
+    }
+}
 
 socket.on("kicked", () => {
     alert("Você foi expulso!");

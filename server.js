@@ -16,15 +16,13 @@ io.on("connection", (socket) => {
 
         rooms[roomId] = {
             admin: socket.id,
-            players: [{ id: socket.id, name }],
+            players: [{ id: socket.id, name, position: 0 }],
             turnIndex: 0,
             gameStarted: false
         };
 
         socket.join(roomId);
         socket.roomId = roomId;
-
-        console.log(`🏠 Sala criada: ${roomId}`);
 
         socket.emit("roomCreated", roomId);
         io.to(roomId).emit("updateRoom", rooms[roomId]);
@@ -37,12 +35,10 @@ io.on("connection", (socket) => {
 
         if (room.players.length >= 4) return;
 
-        room.players.push({ id: socket.id, name });
+        room.players.push({ id: socket.id, name, position: 0 });
 
         socket.join(roomId);
         socket.roomId = roomId;
-
-        console.log(`👤 Entrou: ${name}`);
 
         socket.emit("roomJoined", roomId);
         io.to(roomId).emit("updateRoom", room);
@@ -54,45 +50,44 @@ io.on("connection", (socket) => {
         if (!room) return;
 
         if (socket.id !== room.admin) return;
-
         if (room.players.length < 2) return;
 
         room.gameStarted = true;
         room.turnIndex = 0;
-
-        console.log("🎮 Jogo iniciado");
 
         io.to(socket.roomId).emit("gameStarted", {
             currentPlayer: room.players[0]
         });
     });
 
-    // Rolar dado
+    // Dado + movimento
     socket.on("rollDice", () => {
         const room = rooms[socket.roomId];
         if (!room || !room.gameStarted) return;
 
-        const currentPlayer = room.players[room.turnIndex];
+        const player = room.players[room.turnIndex];
 
-        if (socket.id !== currentPlayer.id) return;
+        if (socket.id !== player.id) return;
 
         const dice = Math.floor(Math.random() * 6) + 1;
 
-        console.log(`🎲 ${currentPlayer.name} tirou ${dice}`);
+        player.position += dice;
+        player.position = player.position % 20;
 
-        io.to(socket.roomId).emit("diceRolled", {
-            player: currentPlayer,
-            value: dice
+        console.log(`🎲 ${player.name} foi para ${player.position}`);
+
+        io.to(socket.roomId).emit("playerMoved", {
+            playerId: player.id,
+            position: player.position,
+            dice
         });
 
         room.turnIndex = (room.turnIndex + 1) % room.players.length;
 
-        const nextPlayer = room.players[room.turnIndex];
-
-        io.to(socket.roomId).emit("nextTurn", nextPlayer);
+        io.to(socket.roomId).emit("nextTurn", room.players[room.turnIndex]);
     });
 
-    // Expulsar
+    // Kick
     socket.on("kickPlayer", (playerId) => {
         const room = rooms[socket.roomId];
         if (!room) return;
@@ -107,12 +102,10 @@ io.on("connection", (socket) => {
         io.to(socket.roomId).emit("updateRoom", room);
     });
 
-    // Sair
+    // Disconnect
     socket.on("disconnect", () => {
-        const roomId = socket.roomId;
-        if (!roomId || !rooms[roomId]) return;
-
-        const room = rooms[roomId];
+        const room = rooms[socket.roomId];
+        if (!room) return;
 
         room.players = room.players.filter(p => p.id !== socket.id);
 
@@ -120,12 +113,12 @@ io.on("connection", (socket) => {
             room.admin = room.players[0].id;
         }
 
-        io.to(roomId).emit("updateRoom", room);
+        io.to(socket.roomId).emit("updateRoom", room);
 
-        if (room.players.length === 0) delete rooms[roomId];
+        if (room.players.length === 0) delete rooms[socket.roomId];
     });
 });
 
 http.listen(3000, "0.0.0.0", () => {
-    console.log("🚀 Servidor rodando em http://localhost:3000");
+    console.log("🚀 Servidor rodando");
 });
