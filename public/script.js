@@ -1,52 +1,91 @@
 const socket = io();
 
 let myId = "";
+let myName = "";
 let players = [];
-let board = [];
 
+const BOARD = [
+    { type: "start", name: "Início" },
+    { type: "property", name: "Rua A" },
+    { type: "property", name: "Rua B" },
+    { type: "tax", name: "Imposto" },
+    { type: "property", name: "Rua C" },
+    { type: "chance", name: "Sorte" },
+    { type: "property", name: "Rua D" },
+    { type: "jail", name: "Prisão" },
+    { type: "property", name: "Rua E" },
+    { type: "tax", name: "Taxa" }
+];
+
+// conexão
 socket.on("connect", () => {
     myId = socket.id;
 });
 
+// telas
+function showScreen(id) {
+    document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
+    document.getElementById(id).classList.add("active");
+}
+
+// fluxo
+function goToLobby() {
+    const name = document.getElementById("nameInput").value;
+    if (!name) return alert("Digite seu nome!");
+
+    myName = name;
+    document.getElementById("playerName").innerText = name;
+
+    showScreen("screenLobby");
+}
+
+// sala
 function createRoom() {
-    socket.emit("createRoom", { name: name.value });
+    socket.emit("createRoom", { name: myName });
 }
 
 function joinRoom() {
-    socket.emit("joinRoom", { name: name.value, roomId: roomId.value });
+    const roomId = document.getElementById("roomIdInput").value;
+    socket.emit("joinRoom", { name: myName, roomId });
 }
 
-socket.on("roomCreated", showRoom);
-socket.on("roomJoined", showRoom);
+socket.on("roomCreated", enterGame);
+socket.on("roomJoined", enterGame);
 
-function showRoom(id) {
-    menu.classList.add("hidden");
-    room.classList.remove("hidden");
-    roomCode.innerText = id;
+function enterGame(roomId) {
+    document.getElementById("roomCode").innerText = roomId;
+    showScreen("screenGame");
 }
 
-socket.on("updateRoom", (roomData) => {
-    players = roomData.players;
+// jogadores
+socket.on("updateRoom", (room) => {
+    players = room.players;
     renderPlayers();
     renderBoard();
 });
 
 function renderPlayers() {
-    playersEl.innerHTML = "";
+    const ul = document.getElementById("players");
+    ul.innerHTML = "";
+
     players.forEach(p => {
         const li = document.createElement("li");
         li.innerText = `${p.name} ($${p.money})`;
-        playersEl.appendChild(li);
+        ul.appendChild(li);
     });
 }
 
+// jogo
+function startGame() {
+    socket.emit("startGame");
+}
+
 socket.on("gameStarted", ({ currentPlayer }) => {
-    rollBtn.style.display = "block";
-    turn.innerText = "Vez de " + currentPlayer.name;
+    document.getElementById("turn").innerText = "Vez de " + currentPlayer.name;
 });
 
 socket.on("nextTurn", (p) => {
-    turn.innerText = "Vez de " + p.name;
+    document.getElementById("turn").innerText = "Vez de " + p.name;
 });
 
 function rollDice() {
@@ -54,28 +93,21 @@ function rollDice() {
 }
 
 socket.on("playerMoved", ({ player, dice, cell }) => {
+    document.getElementById("dice").innerText =
+        `${player.name} caiu em ${cell.name} (${dice})`;
+
     renderBoard();
-    diceEl.innerText = `${player.name} caiu em ${cell.name} (${dice})`;
 });
 
-socket.on("offerBuy", (property) => {
-    if (confirm(`Comprar ${property.name} por ${property.price}?`)) {
-        socket.emit("buyProperty");
-    }
-});
-
-socket.on("propertyBought", (d) => alert(`${d.player} comprou ${d.property}`));
-socket.on("rentPaid", (d) => alert(`${d.from} pagou ${d.value} para ${d.to}`));
-
+// TABULEIRO (CORRIGIDO)
 function renderBoard() {
-    boardEl.innerHTML = "";
+    const board = document.getElementById("board");
+    board.innerHTML = "";
 
-    for (let i = 0; i < 10; i++) {
+    BOARD.forEach((cellData, i) => {
         const cell = document.createElement("div");
-        const data = ["start","property","property","tax","property","chance","property","jail","property","tax"][i];
-
-        cell.className = "cell " + data;
-        cell.innerText = i;
+        cell.className = "cell " + cellData.type;
+        cell.innerText = cellData.name;
 
         players.forEach(p => {
             if (p.position === i) {
@@ -86,6 +118,6 @@ function renderBoard() {
             }
         });
 
-        boardEl.appendChild(cell);
-    }
+        board.appendChild(cell);
+    });
 }

@@ -1,23 +1,61 @@
 body {
+    margin: 0;
     font-family: Arial;
     background: linear-gradient(135deg, #1e3c72, #2a5298);
     color: white;
     text-align: center;
 }
 
+.screen {
+    display: none;
+    height: 100vh;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+}
+
+.screen.active {
+    display: flex;
+}
+
+input {
+    padding: 12px;
+    margin: 10px;
+    border-radius: 10px;
+    border: none;
+    width: 200px;
+}
+
+button {
+    padding: 12px 20px;
+    margin: 10px;
+    border-radius: 10px;
+    border: none;
+    background: #00c9a7;
+    color: white;
+    font-weight: bold;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+button:hover {
+    transform: scale(1.05);
+}
+
 #board {
     display: grid;
-    grid-template-columns: repeat(5, 70px);
-    gap: 5px;
-    justify-content: center;
+    grid-template-columns: repeat(5, 80px);
+    gap: 8px;
+    margin-top: 20px;
 }
 
 .cell {
-    width: 70px;
-    height: 70px;
-    border-radius: 8px;
-    padding: 5px;
+    width: 80px;
+    height: 80px;
+    border-radius: 10px;
     font-size: 10px;
+    padding: 5px;
+    position: relative;
 }
 
 .property { background: #2ecc71; }
@@ -27,5 +65,8 @@ body {
 .start { background: #9b59b6; }
 
 .player {
+    position: absolute;
+    bottom: 2px;
+    right: 2px;
     font-size: 18px;
 }
