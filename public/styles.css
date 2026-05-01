@@ -5,56 +5,27 @@ body {
     text-align: center;
 }
 
-.container {
-    margin-top: 50px;
-}
-
-input {
-    padding: 10px;
-    margin: 5px;
-    border-radius: 8px;
-    border: none;
-}
-
-button {
-    padding: 10px 20px;
-    border-radius: 8px;
-    border: none;
-    cursor: pointer;
-    background: #00c9a7;
-    color: white;
-}
-
-.hidden {
-    display: none;
-}
-
-li {
-    background: rgba(255,255,255,0.2);
-    margin: 5px;
-    padding: 10px;
-    border-radius: 10px;
-}
-
-/* TABULEIRO */
 #board {
     display: grid;
-    grid-template-columns: repeat(5, 60px);
+    grid-template-columns: repeat(5, 70px);
     gap: 5px;
     justify-content: center;
-    margin-top: 20px;
 }
 
 .cell {
-    width: 60px;
-    height: 60px;
-    background: rgba(255,255,255,0.2);
+    width: 70px;
+    height: 70px;
     border-radius: 8px;
-    position: relative;
+    padding: 5px;
+    font-size: 10px;
 }
 
+.property { background: #2ecc71; }
+.tax { background: #e74c3c; }
+.chance { background: #3498db; }
+.jail { background: #f1c40f; }
+.start { background: #9b59b6; }
+
 .player {
-    position: absolute;
-    bottom: 2px;
-    right: 2px;
+    font-size: 18px;
 }

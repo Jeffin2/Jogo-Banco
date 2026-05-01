@@ -1,40 +1,40 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <title>Banco Imobiliário</title>
-    <link rel="stylesheet" href="styles.css">
+<meta charset="UTF-8">
+<title>Banco Imobiliário</title>
+<link rel="stylesheet" href="style.css">
 </head>
 <body>
 
 <div class="container">
 
-    <h1>🏠 Banco Imobiliário</h1>
+<h1>🏠 Banco Imobiliário</h1>
 
-    <div id="menu">
-        <input id="name" placeholder="Seu nome">
-        <button onclick="createRoom()">Criar Sala</button>
+<div id="menu">
+<input id="name" placeholder="Seu nome">
+<button onclick="createRoom()">Criar Sala</button>
 
-        <input id="roomId" placeholder="Código da sala">
-        <button onclick="joinRoom()">Entrar</button>
-    </div>
+<input id="roomId" placeholder="Código da sala">
+<button onclick="joinRoom()">Entrar</button>
+</div>
 
-    <div id="room" class="hidden">
-        <h2>Sala: <span id="roomCode"></span></h2>
+<div id="room" class="hidden">
+<h2>Sala: <span id="roomCode"></span></h2>
 
-        <ul id="players"></ul>
+<ul id="players"></ul>
 
-        <button id="startBtn" class="hidden" onclick="startGame()">Iniciar</button>
+<button id="startBtn" class="hidden" onclick="startGame()">Iniciar</button>
 
-        <p id="turn">Aguardando...</p>
+<p id="turn">Aguardando...</p>
 
-        <button id="rollBtn" class="hidden" onclick="rollDice()">🎲 Rolar</button>
+<button id="rollBtn" class="hidden" onclick="rollDice()">🎲 Rolar</button>
 
-        <p id="dice"></p>
+<p id="dice"></p>
 
-        <h3>Tabuleiro</h3>
-        <div id="board"></div>
-    </div>
+<h3>Tabuleiro</h3>
+<div id="board"></div>
+</div>
 
 </div>
 

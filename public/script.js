@@ -1,126 +1,91 @@
 const socket = io();
 
 let myId = "";
-let isAdmin = false;
-let myTurn = false;
-
-let playersPositions = {};
-const boardSize = 20;
+let players = [];
+let board = [];
 
 socket.on("connect", () => {
     myId = socket.id;
 });
 
-// UI
 function createRoom() {
-    const name = document.getElementById("name").value;
-    socket.emit("createRoom", { name });
+    socket.emit("createRoom", { name: name.value });
 }
 
 function joinRoom() {
-    const name = document.getElementById("name").value;
-    const roomId = document.getElementById("roomId").value;
-    socket.emit("joinRoom", { name, roomId });
+    socket.emit("joinRoom", { name: name.value, roomId: roomId.value });
 }
 
 socket.on("roomCreated", showRoom);
 socket.on("roomJoined", showRoom);
 
-function showRoom(roomId) {
-    document.getElementById("menu").classList.add("hidden");
-    document.getElementById("room").classList.remove("hidden");
-    document.getElementById("roomCode").innerText = roomId;
+function showRoom(id) {
+    menu.classList.add("hidden");
+    room.classList.remove("hidden");
+    roomCode.innerText = id;
 }
 
-// Atualizar sala
-socket.on("updateRoom", (room) => {
-    const list = document.getElementById("players");
-    list.innerHTML = "";
-
-    isAdmin = room.admin === myId;
-
-    room.players.forEach(p => {
-        playersPositions[p.id] = p.position || 0;
-
-        const li = document.createElement("li");
-        li.innerText = p.name;
-
-        if (isAdmin && p.id !== myId) {
-            const btn = document.createElement("button");
-            btn.innerText = "Expulsar";
-            btn.onclick = () => socket.emit("kickPlayer", p.id);
-            li.appendChild(btn);
-        }
-
-        list.appendChild(li);
-    });
-
+socket.on("updateRoom", (roomData) => {
+    players = roomData.players;
+    renderPlayers();
     renderBoard();
-
-    const startBtn = document.getElementById("startBtn");
-    startBtn.style.display = (isAdmin && room.players.length >= 2) ? "block" : "none";
 });
 
-// Iniciar
-function startGame() {
-    socket.emit("startGame");
+function renderPlayers() {
+    playersEl.innerHTML = "";
+    players.forEach(p => {
+        const li = document.createElement("li");
+        li.innerText = `${p.name} ($${p.money})`;
+        playersEl.appendChild(li);
+    });
 }
 
 socket.on("gameStarted", ({ currentPlayer }) => {
-    document.getElementById("rollBtn").style.display = "block";
-    updateTurn(currentPlayer);
+    rollBtn.style.display = "block";
+    turn.innerText = "Vez de " + currentPlayer.name;
 });
 
-// Turno
-socket.on("nextTurn", updateTurn);
+socket.on("nextTurn", (p) => {
+    turn.innerText = "Vez de " + p.name;
+});
 
-function updateTurn(player) {
-    const turn = document.getElementById("turn");
-    myTurn = player.id === myId;
-
-    turn.innerText = "Vez de: " + player.name + (myTurn ? " (VOCÊ)" : "");
-}
-
-// Dado
 function rollDice() {
-    if (!myTurn) return alert("Não é sua vez!");
     socket.emit("rollDice");
 }
 
-// Movimento
-socket.on("playerMoved", ({ playerId, position, dice }) => {
-    playersPositions[playerId] = position;
-
-    document.getElementById("dice").innerText =
-        `🎲 Movimento: ${dice}`;
-
+socket.on("playerMoved", ({ player, dice, cell }) => {
     renderBoard();
+    diceEl.innerText = `${player.name} caiu em ${cell.name} (${dice})`;
 });
 
-// Tabuleiro
-function renderBoard() {
-    const board = document.getElementById("board");
-    board.innerHTML = "";
+socket.on("offerBuy", (property) => {
+    if (confirm(`Comprar ${property.name} por ${property.price}?`)) {
+        socket.emit("buyProperty");
+    }
+});
 
-    for (let i = 0; i < boardSize; i++) {
+socket.on("propertyBought", (d) => alert(`${d.player} comprou ${d.property}`));
+socket.on("rentPaid", (d) => alert(`${d.from} pagou ${d.value} para ${d.to}`));
+
+function renderBoard() {
+    boardEl.innerHTML = "";
+
+    for (let i = 0; i < 10; i++) {
         const cell = document.createElement("div");
-        cell.className = "cell";
+        const data = ["start","property","property","tax","property","chance","property","jail","property","tax"][i];
+
+        cell.className = "cell " + data;
         cell.innerText = i;
 
-        for (let id in playersPositions) {
-            if (playersPositions[id] === i) {
-                const p = document.createElement("div");
-                p.className = "player";
-                p.innerText = "🧍";
-                cell.appendChild(p);
+        players.forEach(p => {
+            if (p.position === i) {
+                const pl = document.createElement("div");
+                pl.className = "player";
+                pl.innerText = "🧍";
+                cell.appendChild(pl);
             }
-        }
+        });
 
-        board.appendChild(cell);
+        boardEl.appendChild(cell);
     }
 }
-
-socket.on("kicked", () => {
-    alert("Você foi expulso!");
-    location.reload();
-});
