@@ -7,22 +7,14 @@ app.use(express.static("public"));
 
 const BOARD = [
     { name: "Início" },
-
-    { name: "Rua A", price: 100, rent: 20, color: "red", owner: null },
-    { name: "Rua B", price: 120, rent: 25, color: "red", owner: null },
-
+    { name: "Rua A", price: 100, baseRent: 20, owner: null, level: 0 },
+    { name: "Rua B", price: 120, baseRent: 25, owner: null, level: 0 },
     { name: "Imposto", value: 50 },
-
-    { name: "Rua C", price: 150, rent: 30, color: "blue", owner: null },
-
+    { name: "Rua C", price: 150, baseRent: 30, owner: null, level: 0 },
     { name: "Sorte" },
-
-    { name: "Rua D", price: 200, rent: 40, color: "green", owner: null },
-
+    { name: "Rua D", price: 200, baseRent: 40, owner: null, level: 0 },
     { name: "Prisão" },
-
-    { name: "Rua E", price: 220, rent: 45, color: "yellow", owner: null },
-
+    { name: "Rua E", price: 220, baseRent: 45, owner: null, level: 0 },
     { name: "Taxa", value: 100 }
 ];
 
@@ -60,7 +52,10 @@ io.on("connection", (socket) => {
 
     socket.on("joinRoom", ({ name, roomId }) => {
         const room = rooms[roomId];
-        if (!room || room.players.length >= 4) return;
+        if (!room || room.players.length >= 4) {
+            socket.emit("errorMsg", "Sala inválida ou cheia");
+            return;
+        }
 
         room.players.push({
             id: socket.id,
@@ -79,8 +74,15 @@ io.on("connection", (socket) => {
     socket.on("startGame", () => {
         const room = rooms[socket.roomId];
 
-        if (!room || socket.id !== room.admin || room.players.length < 2) {
-            socket.emit("errorMsg", "Precisa de 2 jogadores!");
+        if (!room) return;
+
+        if (socket.id !== room.admin) {
+            socket.emit("errorMsg", "Só o admin pode iniciar!");
+            return;
+        }
+
+        if (room.players.length < 2) {
+            socket.emit("errorMsg", "Precisa de pelo menos 2 jogadores!");
             return;
         }
 
@@ -111,23 +113,21 @@ io.on("connection", (socket) => {
         const player = room.players[room.turnIndex];
         const cell = BOARD[player.position];
 
-        // 🏠 propriedade
         if (cell.price) {
             if (!cell.owner) {
                 socket.emit("offerBuy", cell);
             } else if (cell.owner !== player.id) {
-                player.money -= cell.rent;
+                const rent = cell.baseRent * (cell.level + 1);
+                player.money -= rent;
 
                 const owner = room.players.find(p => p.id === cell.owner);
-                if (owner) owner.money += cell.rent;
+                if (owner) owner.money += rent;
             }
         }
 
-        // 💸 taxa
         if (cell.value) player.money -= cell.value;
 
-        // 🎁 sorte
-        if (cell.name === "Sorte") player.money += 50;
+        socket.emit("offerBuild");
 
         room.turnIndex = (room.turnIndex + 1) % room.players.length;
 
@@ -137,8 +137,6 @@ io.on("connection", (socket) => {
 
     socket.on("buyProperty", () => {
         const room = rooms[socket.roomId];
-        if (!room) return;
-
         const player = room.players.find(p => p.id === socket.id);
         const cell = BOARD[player.position];
 
@@ -152,11 +150,21 @@ io.on("connection", (socket) => {
         sendRoom(socket.roomId);
     });
 
-    socket.on("kickPlayer", (id) => {
+    socket.on("buildHouse", () => {
         const room = rooms[socket.roomId];
-        if (!room || socket.id !== room.admin) return;
+        const player = room.players.find(p => p.id === socket.id);
+        const cell = BOARD[player.position];
 
-        room.players = room.players.filter(p => p.id !== id);
+        if (!cell.price || cell.owner !== player.id) return;
+        if (cell.level >= 5) return;
+
+        const cost = 50 + (cell.level * 50);
+
+        if (player.money >= cost) {
+            player.money -= cost;
+            cell.level++;
+        }
+
         sendRoom(socket.roomId);
     });
 });

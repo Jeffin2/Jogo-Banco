@@ -2,7 +2,9 @@ const socket = io();
 
 const playersEl = document.getElementById("players");
 const boardEl = document.getElementById("board");
+const startBtn = document.getElementById("startBtn");
 const turnEl = document.getElementById("turn");
+const statusEl = document.getElementById("status");
 
 let myName="", myId="";
 let players=[], board=[];
@@ -18,6 +20,7 @@ function show(id){
 
 function goLobby(){
     myName=nameInput.value;
+    if(!myName) return alert("Digite seu nome");
     show("screenLobby");
 }
 
@@ -36,6 +39,8 @@ socket.on("updateRoom",(room)=>{
     players=room.players;
     board=room.board;
 
+    const isAdmin = room.admin === myId;
+
     playersEl.innerHTML="";
     players.forEach(p=>{
         const li=document.createElement("li");
@@ -43,12 +48,31 @@ socket.on("updateRoom",(room)=>{
         playersEl.appendChild(li);
     });
 
+    statusEl.innerText = `Jogadores: ${players.length}/4`;
+
+    // botão iniciar inteligente
+    startBtn.style.display = isAdmin ? "block" : "none";
+
+    if(players.length < 2){
+        startBtn.disabled = true;
+        startBtn.innerText = "Aguardando jogadores...";
+    } else {
+        startBtn.disabled = false;
+        startBtn.innerText = "Iniciar Jogo";
+    }
+
     renderBoard();
 });
 
+socket.on("errorMsg",(msg)=>alert(msg));
+
+function startGame(){
+    socket.emit("startGame");
+}
+
 socket.on("gameStarted",({currentPlayer})=>{
     show("screenGame");
-    turnEl.innerText="Vez de "+currentPlayer.name;
+    turnEl.innerText="🎬 Jogo iniciado! Vez de "+currentPlayer.name;
 });
 
 socket.on("nextTurn",(p)=>{
@@ -71,7 +95,7 @@ socket.on("startMove", async ({playerId,steps})=>{
 });
 
 socket.on("offerBuy",(cell)=>{
-    if(confirm(`Comprar ${cell.name}?`)){
+    if(confirm(`Comprar ${cell.name} por ${cell.price}?`)){
         socket.emit("buyProperty");
     }
 });

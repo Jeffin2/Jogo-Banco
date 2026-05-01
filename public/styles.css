@@ -19,6 +19,11 @@ button {
     cursor:pointer;
 }
 
+button:disabled {
+    background: gray;
+    cursor: not-allowed;
+}
+
 #board {
     display:grid;
     grid-template-columns: repeat(5,80px);
