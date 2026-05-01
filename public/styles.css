@@ -22,6 +22,7 @@ input {
     padding: 12px;
     border-radius: 10px;
     border: none;
+    margin: 10px;
 }
 
 button {
@@ -50,6 +51,7 @@ button:hover {
     width: 80px;
     height: 80px;
     border-radius: 12px;
+    background: rgba(255,255,255,0.1);
     display: flex;
     justify-content: center;
     align-items: center;
@@ -61,5 +63,4 @@ button:hover {
     bottom: 5px;
     right: 5px;
     font-size: 20px;
-    transition: all 0.3s;
 }

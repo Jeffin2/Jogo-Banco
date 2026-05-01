@@ -6,16 +6,16 @@ const io = require("socket.io")(http);
 app.use(express.static("public"));
 
 const BOARD = [
-    { type: "start", name: "Início" },
-    { type: "property", name: "Rua A", price: 100 },
-    { type: "property", name: "Rua B", price: 120 },
-    { type: "tax", name: "Imposto", value: 50 },
-    { type: "property", name: "Rua C", price: 150 },
-    { type: "chance", name: "Sorte" },
-    { type: "property", name: "Rua D", price: 200 },
-    { type: "jail", name: "Prisão" },
-    { type: "property", name: "Rua E", price: 220 },
-    { type: "tax", name: "Taxa", value: 100 }
+    { name: "Início" },
+    { name: "Rua A" },
+    { name: "Rua B" },
+    { name: "Imposto" },
+    { name: "Rua C" },
+    { name: "Sorte" },
+    { name: "Rua D" },
+    { name: "Prisão" },
+    { name: "Rua E" },
+    { name: "Taxa" }
 ];
 
 let rooms = {};
@@ -29,6 +29,7 @@ function sendRoom(roomId) {
 }
 
 io.on("connection", (socket) => {
+
     socket.on("createRoom", ({ name }) => {
         const id = Math.random().toString(36).substr(2, 5);
 
@@ -60,7 +61,11 @@ io.on("connection", (socket) => {
 
     socket.on("startGame", () => {
         const room = rooms[socket.roomId];
-        if (!room || socket.id !== room.admin) return;
+
+        if (!room || socket.id !== room.admin || room.players.length < 2) {
+            socket.emit("errorMsg", "Precisa de pelo menos 2 jogadores!");
+            return;
+        }
 
         io.to(socket.roomId).emit("gameStarted", {
             currentPlayer: room.players[0]
@@ -97,8 +102,9 @@ io.on("connection", (socket) => {
         if (!room || socket.id !== room.admin) return;
 
         room.players = room.players.filter(p => p.id !== id);
+        io.to(id).emit("kicked");
         sendRoom(socket.roomId);
     });
 });
 
-http.listen(3000, () => console.log("🚀 Rodando"));
+http.listen(3000, () => console.log("🚀 Servidor rodando"));

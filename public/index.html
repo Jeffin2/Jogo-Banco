@@ -14,20 +14,25 @@
 </div>
 
 <div id="screenLobby" class="screen">
+    <h2>Lobby</h2>
     <button onclick="createRoom()">Criar Sala</button>
-    <input id="roomIdInput" placeholder="Código">
+    <input id="roomIdInput" placeholder="Código da sala">
     <button onclick="joinRoom()">Entrar</button>
 </div>
 
 <div id="screenRoom" class="screen">
     <h2>Sala: <span id="roomCode"></span></h2>
+
+    <p id="status">Aguardando jogadores...</p>
+
     <ul id="players"></ul>
+
     <button id="startBtn" onclick="startGame()">Iniciar</button>
 </div>
 
 <div id="screenGame" class="screen">
     <h2 id="turn"></h2>
-    <button onclick="rollDice()">🎲</button>
+    <button onclick="rollDice()">🎲 Rolar</button>
     <div id="board"></div>
 </div>
 
