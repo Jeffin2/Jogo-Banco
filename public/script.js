@@ -48,37 +48,24 @@ socket.on("updateRoom",(room)=>{
         playersEl.appendChild(li);
     });
 
-    statusEl.innerText = `Jogadores: ${players.length}/4`;
+    statusEl.innerText=`Jogadores: ${players.length}/4`;
 
-    // botão iniciar inteligente
     startBtn.style.display = isAdmin ? "block" : "none";
-
-    if(players.length < 2){
-        startBtn.disabled = true;
-        startBtn.innerText = "Aguardando jogadores...";
-    } else {
-        startBtn.disabled = false;
-        startBtn.innerText = "Iniciar Jogo";
-    }
+    startBtn.disabled = players.length < 2;
 
     renderBoard();
 });
 
-socket.on("errorMsg",(msg)=>alert(msg));
-
-function startGame(){
-    socket.emit("startGame");
-}
-
 socket.on("gameStarted",({currentPlayer})=>{
     show("screenGame");
-    turnEl.innerText="🎬 Jogo iniciado! Vez de "+currentPlayer.name;
+    turnEl.innerText="Vez de "+currentPlayer.name;
 });
 
 socket.on("nextTurn",(p)=>{
     turnEl.innerText="Vez de "+p.name;
 });
 
+function startGame(){ socket.emit("startGame"); }
 function rollDice(){ socket.emit("rollDice"); }
 
 socket.on("startMove", async ({playerId,steps})=>{
@@ -95,7 +82,7 @@ socket.on("startMove", async ({playerId,steps})=>{
 });
 
 socket.on("offerBuy",(cell)=>{
-    if(confirm(`Comprar ${cell.name} por ${cell.price}?`)){
+    if(confirm(`Comprar ${cell.name}?`)){
         socket.emit("buyProperty");
     }
 });

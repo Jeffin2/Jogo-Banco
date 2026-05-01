@@ -5,25 +5,38 @@ const io = require("socket.io")(http);
 
 app.use(express.static("public"));
 
-const BOARD = [
-    { name: "Início" },
-    { name: "Rua A", price: 100, baseRent: 20, owner: null, level: 0 },
-    { name: "Rua B", price: 120, baseRent: 25, owner: null, level: 0 },
-    { name: "Imposto", value: 50 },
-    { name: "Rua C", price: 150, baseRent: 30, owner: null, level: 0 },
-    { name: "Sorte" },
-    { name: "Rua D", price: 200, baseRent: 40, owner: null, level: 0 },
-    { name: "Prisão" },
-    { name: "Rua E", price: 220, baseRent: 45, owner: null, level: 0 },
-    { name: "Taxa", value: 100 }
-];
+function createBoard() {
+    return [
+        { name: "Início" },
+
+        { name: "Rua A", price: 100, baseRent: 20, owner: null, level: 0 },
+        { name: "Rua B", price: 120, baseRent: 25, owner: null, level: 0 },
+
+        { name: "Imposto", value: 50 },
+
+        { name: "Rua C", price: 150, baseRent: 30, owner: null, level: 0 },
+
+        { name: "Sorte" },
+
+        { name: "Rua D", price: 200, baseRent: 40, owner: null, level: 0 },
+
+        { name: "Prisão" },
+
+        { name: "Rua E", price: 220, baseRent: 45, owner: null, level: 0 },
+
+        { name: "Taxa", value: 100 }
+    ];
+}
 
 let rooms = {};
 
 function sendRoom(roomId) {
+    const room = rooms[roomId];
+
     io.to(roomId).emit("updateRoom", {
-        ...rooms[roomId],
-        board: BOARD
+        players: room.players,
+        board: room.board,
+        admin: room.admin
     });
 }
 
@@ -40,6 +53,7 @@ io.on("connection", (socket) => {
                 position: 0,
                 money: 1000
             }],
+            board: createBoard(), // 🔥 cada sala tem o seu
             turnIndex: 0
         };
 
@@ -74,15 +88,8 @@ io.on("connection", (socket) => {
     socket.on("startGame", () => {
         const room = rooms[socket.roomId];
 
-        if (!room) return;
-
-        if (socket.id !== room.admin) {
-            socket.emit("errorMsg", "Só o admin pode iniciar!");
-            return;
-        }
-
-        if (room.players.length < 2) {
-            socket.emit("errorMsg", "Precisa de pelo menos 2 jogadores!");
+        if (!room || socket.id !== room.admin || room.players.length < 2) {
+            socket.emit("errorMsg", "Precisa de 2 jogadores!");
             return;
         }
 
@@ -111,7 +118,7 @@ io.on("connection", (socket) => {
         if (!room) return;
 
         const player = room.players[room.turnIndex];
-        const cell = BOARD[player.position];
+        const cell = room.board[player.position];
 
         if (cell.price) {
             if (!cell.owner) {
@@ -138,7 +145,7 @@ io.on("connection", (socket) => {
     socket.on("buyProperty", () => {
         const room = rooms[socket.roomId];
         const player = room.players.find(p => p.id === socket.id);
-        const cell = BOARD[player.position];
+        const cell = room.board[player.position];
 
         if (!cell.price || cell.owner) return;
 
@@ -153,7 +160,7 @@ io.on("connection", (socket) => {
     socket.on("buildHouse", () => {
         const room = rooms[socket.roomId];
         const player = room.players.find(p => p.id === socket.id);
-        const cell = BOARD[player.position];
+        const cell = room.board[player.position];
 
         if (!cell.price || cell.owner !== player.id) return;
         if (cell.level >= 5) return;
