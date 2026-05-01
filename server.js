@@ -5,17 +5,16 @@ const io = require("socket.io")(http);
 
 app.use(express.static("public"));
 
-// 🗺️ TABULEIRO CENTRAL (AGORA CORRETO)
 const BOARD = [
     { type: "start", name: "Início" },
-    { type: "property", name: "Rua A", price: 100, rent: 20, owner: null },
-    { type: "property", name: "Rua B", price: 120, rent: 25, owner: null },
+    { type: "property", name: "Rua A", price: 100 },
+    { type: "property", name: "Rua B", price: 120 },
     { type: "tax", name: "Imposto", value: 50 },
-    { type: "property", name: "Rua C", price: 150, rent: 30, owner: null },
+    { type: "property", name: "Rua C", price: 150 },
     { type: "chance", name: "Sorte" },
-    { type: "property", name: "Rua D", price: 200, rent: 40, owner: null },
+    { type: "property", name: "Rua D", price: 200 },
     { type: "jail", name: "Prisão" },
-    { type: "property", name: "Rua E", price: 220, rent: 45, owner: null },
+    { type: "property", name: "Rua E", price: 220 },
     { type: "tax", name: "Taxa", value: 100 }
 ];
 
@@ -30,40 +29,27 @@ function sendRoom(roomId) {
 }
 
 io.on("connection", (socket) => {
-    console.log("🟢 Conectado:", socket.id);
-
     socket.on("createRoom", ({ name }) => {
-        const roomId = Math.random().toString(36).substr(2, 5);
+        const id = Math.random().toString(36).substr(2, 5);
 
-        rooms[roomId] = {
+        rooms[id] = {
             admin: socket.id,
-            players: [{
-                id: socket.id,
-                name,
-                position: 0,
-                money: 1000
-            }],
-            turnIndex: 0,
-            gameStarted: false
+            players: [{ id: socket.id, name, position: 0 }],
+            turnIndex: 0
         };
 
-        socket.join(roomId);
-        socket.roomId = roomId;
+        socket.join(id);
+        socket.roomId = id;
 
-        socket.emit("roomCreated", roomId);
-        sendRoom(roomId);
+        socket.emit("roomCreated", id);
+        sendRoom(id);
     });
 
     socket.on("joinRoom", ({ name, roomId }) => {
         const room = rooms[roomId];
         if (!room || room.players.length >= 4) return;
 
-        room.players.push({
-            id: socket.id,
-            name,
-            position: 0,
-            money: 1000
-        });
+        room.players.push({ id: socket.id, name, position: 0 });
 
         socket.join(roomId);
         socket.roomId = roomId;
@@ -76,9 +62,6 @@ io.on("connection", (socket) => {
         const room = rooms[socket.roomId];
         if (!room || socket.id !== room.admin) return;
 
-        room.gameStarted = true;
-        room.turnIndex = 0;
-
         io.to(socket.roomId).emit("gameStarted", {
             currentPlayer: room.players[0]
         });
@@ -86,41 +69,22 @@ io.on("connection", (socket) => {
 
     socket.on("rollDice", () => {
         const room = rooms[socket.roomId];
-        if (!room || !room.gameStarted) return;
+        if (!room) return;
 
         const player = room.players[room.turnIndex];
         if (socket.id !== player.id) return;
 
         const dice = Math.floor(Math.random() * 6) + 1;
 
-        player.position = (player.position + dice) % BOARD.length;
-        const cell = BOARD[player.position];
-
-        // lógica simples
-        if (cell.type === "property") {
-            if (!cell.owner) {
-                socket.emit("offerBuy", cell);
-            } else if (cell.owner !== player.id) {
-                player.money -= cell.rent;
-                const owner = room.players.find(p => p.id === cell.owner);
-                if (owner) owner.money += cell.rent;
-
-                io.to(socket.roomId).emit("rentPaid", {
-                    from: player.name,
-                    to: owner.name,
-                    value: cell.rent
-                });
-            }
-        }
-
-        if (cell.type === "tax") player.money -= cell.value;
-        if (cell.type === "chance") player.money += 50;
-
-        io.to(socket.roomId).emit("playerMoved", {
-            player,
-            dice,
-            cell
+        io.to(socket.roomId).emit("startMove", {
+            playerId: player.id,
+            steps: dice
         });
+    });
+
+    socket.on("finishMove", () => {
+        const room = rooms[socket.roomId];
+        if (!room) return;
 
         room.turnIndex = (room.turnIndex + 1) % room.players.length;
 
@@ -128,54 +92,13 @@ io.on("connection", (socket) => {
         sendRoom(socket.roomId);
     });
 
-    socket.on("buyProperty", () => {
-        const room = rooms[socket.roomId];
-        if (!room) return;
-
-        const player = room.players.find(p => p.id === socket.id);
-        const cell = BOARD[player.position];
-
-        if (cell.type !== "property" || cell.owner) return;
-
-        if (player.money >= cell.price) {
-            player.money -= cell.price;
-            cell.owner = player.id;
-
-            io.to(socket.roomId).emit("propertyBought", {
-                player: player.name,
-                property: cell.name
-            });
-
-            sendRoom(socket.roomId);
-        }
-    });
-
     socket.on("kickPlayer", (id) => {
         const room = rooms[socket.roomId];
         if (!room || socket.id !== room.admin) return;
 
         room.players = room.players.filter(p => p.id !== id);
-
-        io.to(id).emit("kicked");
         sendRoom(socket.roomId);
-    });
-
-    socket.on("disconnect", () => {
-        const room = rooms[socket.roomId];
-        if (!room) return;
-
-        room.players = room.players.filter(p => p.id !== socket.id);
-
-        if (room.admin === socket.id && room.players.length > 0) {
-            room.admin = room.players[0].id;
-        }
-
-        sendRoom(socket.roomId);
-
-        if (room.players.length === 0) delete rooms[socket.roomId];
     });
 });
 
-http.listen(3000, "0.0.0.0", () => {
-    console.log("🚀 Servidor rodando");
-});
+http.listen(3000, () => console.log("🚀 Rodando"));

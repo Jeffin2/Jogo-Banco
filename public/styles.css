@@ -1,7 +1,7 @@
 body {
     margin: 0;
     font-family: Arial;
-    background: linear-gradient(135deg, #1e3c72, #2a5298);
+    background: linear-gradient(135deg,#1e3c72,#2a5298);
     color: white;
     text-align: center;
 }
@@ -18,39 +18,48 @@ body {
     display: flex;
 }
 
-button {
+input {
     padding: 12px;
+    border-radius: 10px;
+    border: none;
+}
+
+button {
+    padding: 12px 20px;
     margin: 10px;
     border-radius: 10px;
     border: none;
     background: #00c9a7;
     color: white;
     cursor: pointer;
+    transition: 0.2s;
+}
+
+button:hover {
+    transform: scale(1.1);
 }
 
 #board {
     display: grid;
-    grid-template-columns: repeat(5, 80px);
-    gap: 8px;
+    grid-template-columns: repeat(5,80px);
+    gap: 10px;
+    margin-top: 20px;
 }
 
 .cell {
     width: 80px;
     height: 80px;
-    border-radius: 10px;
-    font-size: 10px;
-    padding: 5px;
+    border-radius: 12px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    position: relative;
 }
 
 .player {
-    font-size: 18px;
-}
-
-.fadeIn {
-    animation: fade 0.8s;
-}
-
-@keyframes fade {
-    from { opacity: 0; }
-    to { opacity: 1; }
+    position: absolute;
+    bottom: 5px;
+    right: 5px;
+    font-size: 20px;
+    transition: all 0.3s;
 }
