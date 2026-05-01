@@ -52,7 +52,7 @@ socket.on("updateRoom",(room)=>{
 
     players.forEach(p=>{
         const li = document.createElement("li");
-        li.innerText = p.name;
+        li.innerText = `${p.name} 💰 ${p.money}`;
 
         if(isAdmin && p.id !== myId){
             const btn = document.createElement("button");
@@ -65,17 +65,10 @@ socket.on("updateRoom",(room)=>{
     });
 
     statusEl.innerText = `Jogadores: ${players.length}/4`;
-
     startBtn.style.display = isAdmin ? "block" : "none";
 
     renderBoard();
 });
-
-socket.on("errorMsg", msg => alert(msg));
-
-function startGame(){
-    socket.emit("startGame");
-}
 
 socket.on("gameStarted",({currentPlayer})=>{
     show("screenGame");
@@ -99,10 +92,16 @@ socket.on("startMove", async ({playerId,steps})=>{
         });
 
         renderBoard();
-        await new Promise(r=>setTimeout(r,300));
+        await new Promise(r=>setTimeout(r,200));
     }
 
     socket.emit("finishMove");
+});
+
+socket.on("offerBuy",(cell)=>{
+    if(confirm(`Comprar ${cell.name} por ${cell.price}?`)){
+        socket.emit("buyProperty");
+    }
 });
 
 function renderBoard(){
@@ -110,7 +109,7 @@ function renderBoard(){
 
     board.forEach((cell,i)=>{
         const div = document.createElement("div");
-        div.className = "cell";
+        div.className = "cell " + (cell.color || "");
         div.innerText = cell.name;
 
         players.forEach((p,index)=>{
@@ -125,7 +124,3 @@ function renderBoard(){
         boardEl.appendChild(div);
     });
 }
-
-socket.on("kicked", ()=>{
-    alert("Você foi expulso!");
-    location.reload();

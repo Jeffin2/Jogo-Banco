@@ -18,49 +18,36 @@ body {
     display: flex;
 }
 
-input {
-    padding: 12px;
-    border-radius: 10px;
-    border: none;
-    margin: 10px;
-}
-
 button {
-    padding: 12px 20px;
+    padding: 12px;
     margin: 10px;
     border-radius: 10px;
     border: none;
     background: #00c9a7;
     color: white;
     cursor: pointer;
-    transition: 0.2s;
-}
-
-button:hover {
-    transform: scale(1.1);
 }
 
 #board {
     display: grid;
-    grid-template-columns: repeat(5,80px);
+    grid-template-columns: repeat(3, 120px);
+    grid-template-rows: repeat(3, 120px);
     gap: 10px;
-    margin-top: 20px;
 }
 
 .cell {
-    width: 80px;
-    height: 80px;
-    border-radius: 12px;
-    background: rgba(255,255,255,0.1);
-    display: flex;
-    justify-content: center;
-    align-items: center;
+    border-radius: 10px;
+    padding: 5px;
     position: relative;
 }
 
+.red { background:#e74c3c; }
+.blue { background:#3498db; }
+.green { background:#2ecc71; }
+.yellow { background:#f1c40f; }
+
 .player {
-    position: absolute;
-    bottom: 5px;
-    right: 5px;
-    font-size: 20px;
+    position:absolute;
+    bottom:5px;
+    right:5px;
 }

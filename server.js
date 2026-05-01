@@ -7,23 +7,30 @@ app.use(express.static("public"));
 
 const BOARD = [
     { name: "Início" },
-    { name: "Rua A" },
-    { name: "Rua B" },
-    { name: "Imposto" },
-    { name: "Rua C" },
+
+    { name: "Rua A", price: 100, rent: 20, color: "red", owner: null },
+    { name: "Rua B", price: 120, rent: 25, color: "red", owner: null },
+
+    { name: "Imposto", value: 50 },
+
+    { name: "Rua C", price: 150, rent: 30, color: "blue", owner: null },
+
     { name: "Sorte" },
-    { name: "Rua D" },
+
+    { name: "Rua D", price: 200, rent: 40, color: "green", owner: null },
+
     { name: "Prisão" },
-    { name: "Rua E" },
-    { name: "Taxa" }
+
+    { name: "Rua E", price: 220, rent: 45, color: "yellow", owner: null },
+
+    { name: "Taxa", value: 100 }
 ];
 
 let rooms = {};
 
 function sendRoom(roomId) {
-    const room = rooms[roomId];
     io.to(roomId).emit("updateRoom", {
-        ...room,
+        ...rooms[roomId],
         board: BOARD
     });
 }
@@ -35,7 +42,12 @@ io.on("connection", (socket) => {
 
         rooms[id] = {
             admin: socket.id,
-            players: [{ id: socket.id, name, position: 0 }],
+            players: [{
+                id: socket.id,
+                name,
+                position: 0,
+                money: 1000
+            }],
             turnIndex: 0
         };
 
@@ -50,7 +62,12 @@ io.on("connection", (socket) => {
         const room = rooms[roomId];
         if (!room || room.players.length >= 4) return;
 
-        room.players.push({ id: socket.id, name, position: 0 });
+        room.players.push({
+            id: socket.id,
+            name,
+            position: 0,
+            money: 1000
+        });
 
         socket.join(roomId);
         socket.roomId = roomId;
@@ -63,7 +80,7 @@ io.on("connection", (socket) => {
         const room = rooms[socket.roomId];
 
         if (!room || socket.id !== room.admin || room.players.length < 2) {
-            socket.emit("errorMsg", "Precisa de pelo menos 2 jogadores!");
+            socket.emit("errorMsg", "Precisa de 2 jogadores!");
             return;
         }
 
@@ -91,9 +108,47 @@ io.on("connection", (socket) => {
         const room = rooms[socket.roomId];
         if (!room) return;
 
+        const player = room.players[room.turnIndex];
+        const cell = BOARD[player.position];
+
+        // 🏠 propriedade
+        if (cell.price) {
+            if (!cell.owner) {
+                socket.emit("offerBuy", cell);
+            } else if (cell.owner !== player.id) {
+                player.money -= cell.rent;
+
+                const owner = room.players.find(p => p.id === cell.owner);
+                if (owner) owner.money += cell.rent;
+            }
+        }
+
+        // 💸 taxa
+        if (cell.value) player.money -= cell.value;
+
+        // 🎁 sorte
+        if (cell.name === "Sorte") player.money += 50;
+
         room.turnIndex = (room.turnIndex + 1) % room.players.length;
 
         io.to(socket.roomId).emit("nextTurn", room.players[room.turnIndex]);
+        sendRoom(socket.roomId);
+    });
+
+    socket.on("buyProperty", () => {
+        const room = rooms[socket.roomId];
+        if (!room) return;
+
+        const player = room.players.find(p => p.id === socket.id);
+        const cell = BOARD[player.position];
+
+        if (!cell.price || cell.owner) return;
+
+        if (player.money >= cell.price) {
+            player.money -= cell.price;
+            cell.owner = player.id;
+        }
+
         sendRoom(socket.roomId);
     });
 
@@ -102,7 +157,6 @@ io.on("connection", (socket) => {
         if (!room || socket.id !== room.admin) return;
 
         room.players = room.players.filter(p => p.id !== id);
-        io.to(id).emit("kicked");
         sendRoom(socket.roomId);
     });
 });

@@ -14,7 +14,6 @@
 </div>
 
 <div id="screenLobby" class="screen">
-    <h2>Lobby</h2>
     <button onclick="createRoom()">Criar Sala</button>
     <input id="roomIdInput" placeholder="Código da sala">
     <button onclick="joinRoom()">Entrar</button>
@@ -22,11 +21,8 @@
 
 <div id="screenRoom" class="screen">
     <h2>Sala: <span id="roomCode"></span></h2>
-
-    <p id="status">Aguardando jogadores...</p>
-
+    <p id="status"></p>
     <ul id="players"></ul>
-
     <button id="startBtn" onclick="startGame()">Iniciar</button>
 </div>
 
