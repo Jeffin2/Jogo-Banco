@@ -1,42 +1,27 @@
 const socket = io();
 
-let currentRoom = "";
 let myId = "";
 let isAdmin = false;
+let myTurn = false;
 
 socket.on("connect", () => {
     myId = socket.id;
+    console.log("🟢 Conectado:", myId);
 });
 
-// Criar sala
 function createRoom() {
     const name = document.getElementById("name").value;
-    if (!name) return alert("Digite seu nome!");
-
     socket.emit("createRoom", { name });
 }
 
-// Entrar na sala
 function joinRoom() {
     const name = document.getElementById("name").value;
     const roomId = document.getElementById("roomId").value;
-
-    if (!name || !roomId) return alert("Preencha tudo!");
-
     socket.emit("joinRoom", { name, roomId });
 }
 
-// Criou sala
-socket.on("roomCreated", (roomId) => {
-    currentRoom = roomId;
-    showRoom(roomId);
-});
-
-// Entrou
-socket.on("roomJoined", (roomId) => {
-    currentRoom = roomId;
-    showRoom(roomId);
-});
+socket.on("roomCreated", showRoom);
+socket.on("roomJoined", showRoom);
 
 function showRoom(roomId) {
     document.getElementById("menu").classList.add("hidden");
@@ -44,49 +29,59 @@ function showRoom(roomId) {
     document.getElementById("roomCode").innerText = roomId;
 }
 
-// Atualizar sala
 socket.on("updateRoom", (room) => {
-    const playersList = document.getElementById("players");
-    playersList.innerHTML = "";
+    const list = document.getElementById("players");
+    list.innerHTML = "";
 
     isAdmin = room.admin === myId;
 
-    room.players.forEach(player => {
+    room.players.forEach(p => {
         const li = document.createElement("li");
-        li.innerText = player.name;
+        li.innerText = p.name;
 
-        // botão expulsar (só admin)
-        if (isAdmin && player.id !== myId) {
+        if (isAdmin && p.id !== myId) {
             const btn = document.createElement("button");
             btn.innerText = "Expulsar";
-            btn.onclick = () => socket.emit("kickPlayer", player.id);
+            btn.onclick = () => socket.emit("kickPlayer", p.id);
             li.appendChild(btn);
         }
 
-        playersList.appendChild(li);
+        list.appendChild(li);
     });
 
-    // botão iniciar
     const startBtn = document.getElementById("startBtn");
-    if (isAdmin && room.players.length >= 2) {
-        startBtn.classList.remove("hidden");
-    } else {
-        startBtn.classList.add("hidden");
-    }
+    startBtn.style.display = (isAdmin && room.players.length >= 2) ? "block" : "none";
 });
 
-// iniciar jogo
 function startGame() {
     socket.emit("startGame");
 }
 
-// jogo iniciou
-socket.on("gameStarted", () => {
-    alert("🎮 O jogo começou!");
+socket.on("gameStarted", ({ currentPlayer }) => {
+    document.getElementById("rollBtn").style.display = "block";
+    updateTurn(currentPlayer);
 });
 
-// foi expulso
+socket.on("nextTurn", updateTurn);
+
+function updateTurn(player) {
+    const turn = document.getElementById("turn");
+    myTurn = player.id === myId;
+
+    turn.innerText = "Vez de: " + player.name + (myTurn ? " (VOCÊ)" : "");
+}
+
+function rollDice() {
+    if (!myTurn) return alert("Não é sua vez!");
+    socket.emit("rollDice");
+}
+
+socket.on("diceRolled", ({ player, value }) => {
+    document.getElementById("dice").innerText =
+        `${player.name} tirou 🎲 ${value}`;
+});
+
 socket.on("kicked", () => {
-    alert("🚫 Você foi expulso da sala!");
+    alert("Você foi expulso!");
     location.reload();
 });
