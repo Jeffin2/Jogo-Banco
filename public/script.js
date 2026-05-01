@@ -1,7 +1,14 @@
 const socket = io();
 
 let currentRoom = "";
+let myId = "";
+let isAdmin = false;
 
+socket.on("connect", () => {
+    myId = socket.id;
+});
+
+// Criar sala
 function createRoom() {
     const name = document.getElementById("name").value;
     if (!name) return alert("Digite seu nome!");
@@ -9,6 +16,7 @@ function createRoom() {
     socket.emit("createRoom", { name });
 }
 
+// Entrar na sala
 function joinRoom() {
     const name = document.getElementById("name").value;
     const roomId = document.getElementById("roomId").value;
@@ -18,36 +26,67 @@ function joinRoom() {
     socket.emit("joinRoom", { name, roomId });
 }
 
+// Criou sala
 socket.on("roomCreated", (roomId) => {
     currentRoom = roomId;
-
-    document.getElementById("menu").classList.add("hidden");
-    document.getElementById("room").classList.remove("hidden");
-
-    document.getElementById("roomCode").innerText = roomId;
-
-    alert("Sala criada! Código: " + roomId);
+    showRoom(roomId);
 });
 
+// Entrou
+socket.on("roomJoined", (roomId) => {
+    currentRoom = roomId;
+    showRoom(roomId);
+});
+
+function showRoom(roomId) {
+    document.getElementById("menu").classList.add("hidden");
+    document.getElementById("room").classList.remove("hidden");
+    document.getElementById("roomCode").innerText = roomId;
+}
+
+// Atualizar sala
 socket.on("updateRoom", (room) => {
     const playersList = document.getElementById("players");
     playersList.innerHTML = "";
+
+    isAdmin = room.admin === myId;
 
     room.players.forEach(player => {
         const li = document.createElement("li");
         li.innerText = player.name;
 
-        li.style.opacity = 0;
-        setTimeout(() => li.style.opacity = 1, 100);
+        // botão expulsar (só admin)
+        if (isAdmin && player.id !== myId) {
+            const btn = document.createElement("button");
+            btn.innerText = "Expulsar";
+            btn.onclick = () => socket.emit("kickPlayer", player.id);
+            li.appendChild(btn);
+        }
 
         playersList.appendChild(li);
     });
 
-    if (room.players.length >= 2) {
-        document.getElementById("startBtn").classList.remove("hidden");
+    // botão iniciar
+    const startBtn = document.getElementById("startBtn");
+    if (isAdmin && room.players.length >= 2) {
+        startBtn.classList.remove("hidden");
+    } else {
+        startBtn.classList.add("hidden");
     }
 });
 
+// iniciar jogo
 function startGame() {
-    alert("🚧 Próxima etapa: implementar tabuleiro + turnos!");
+    socket.emit("startGame");
 }
+
+// jogo iniciou
+socket.on("gameStarted", () => {
+    alert("🎮 O jogo começou!");
+});
+
+// foi expulso
+socket.on("kicked", () => {
+    alert("🚫 Você foi expulso da sala!");
+    location.reload();
+});
