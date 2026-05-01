@@ -1,5 +1,7 @@
 const socket = io();
 
+let currentRoom = "";
+
 function createRoom() {
     const name = document.getElementById("name").value;
     if (!name) return alert("Digite seu nome!");
@@ -17,9 +19,14 @@ function joinRoom() {
 }
 
 socket.on("roomCreated", (roomId) => {
+    currentRoom = roomId;
+
     document.getElementById("menu").classList.add("hidden");
     document.getElementById("room").classList.remove("hidden");
+
     document.getElementById("roomCode").innerText = roomId;
+
+    alert("Sala criada! Código: " + roomId);
 });
 
 socket.on("updateRoom", (room) => {
@@ -29,6 +36,18 @@ socket.on("updateRoom", (room) => {
     room.players.forEach(player => {
         const li = document.createElement("li");
         li.innerText = player.name;
+
+        li.style.opacity = 0;
+        setTimeout(() => li.style.opacity = 1, 100);
+
         playersList.appendChild(li);
     });
+
+    if (room.players.length >= 2) {
+        document.getElementById("startBtn").classList.remove("hidden");
+    }
 });
+
+function startGame() {
+    alert("🚧 Próxima etapa: implementar tabuleiro + turnos!");
+}

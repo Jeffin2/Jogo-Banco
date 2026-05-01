@@ -8,7 +8,6 @@ app.use(express.static("public"));
 let rooms = {};
 
 io.on("connection", (socket) => {
-    console.log("Novo jogador conectado");
 
     socket.on("createRoom", ({ name }) => {
         const roomId = Math.random().toString(36).substr(2, 5);
@@ -26,7 +25,6 @@ io.on("connection", (socket) => {
 
     socket.on("joinRoom", ({ name, roomId }) => {
         const room = rooms[roomId];
-
         if (!room) return;
 
         if (room.players.length >= 4) return;
